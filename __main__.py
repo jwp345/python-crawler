@@ -39,9 +39,34 @@ def crawling_pelicana():
 
 
 def crawling_nene():
-    url = 'https://nenechicken.com/17_new/sub_shop01.asp?ex_select=1&ex_select2=&IndexSword=&GUBUN=A&page=1'
-    html = crawler.crawling(url)
-    print(html)
+    results = []
+    prev_name = ''
+    for page in count(start=1, step=1):
+        url = 'https://nenechicken.com/17_new/sub_shop01.asp?ex_select=1&ex_select2=&IndexSword=&GUBUN=A&page=%d' % page
+        html = crawler.crawling(url)
+
+        bs = BeautifulSoup(html, 'html.parser')
+        tags_div = bs.findAll('div', attrs={'class': 'shopInfo'})
+        for i, tag_div in enumerate(tags_div):
+            strings = list(filter(lambda b: b != 'Pizza', filter(lambda a: a != '\n', tag_div.strings)))
+            name = strings[0]
+            address = strings[1]
+
+            if prev_name == name:
+                break
+            elif i == 0:
+                prev_name = name
+
+            sidogu = address.split()[0:2]
+
+            t = (name, address) + tuple(sidogu)
+            results.append(t)
+
+        if prev_name == name:
+            break
+        # store
+        table = pd.DataFrame(results, columns=['name', 'address', 'sido', 'gigun'])
+        table.to_csv('results/nene.csv', encoding='utf-8', mode='w', index=True)
 
 
 def crawling_goobne():
@@ -83,9 +108,9 @@ if __name__ == '__main__':
     # crawling_pelicana()
 
     # nene
-    # crawling_nene()
+     crawling_nene()
 
     # kyochon
-    crawling_kyochon()
+    # crawling_kyochon()
 
     # goobne
