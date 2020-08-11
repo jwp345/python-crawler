@@ -1,10 +1,10 @@
+from datetime import datetime
 from itertools import count
-
 from bs4 import BeautifulSoup
-
+from selenium import webdriver
 from collection import crawler
-
 import pandas as pd
+import time
 
 
 def crawling_pelicana():
@@ -70,7 +70,46 @@ def crawling_nene():
 
 
 def crawling_goobne():
-    pass
+    url = 'http://goobne.co.kr/store/search_store.jsp'
+
+    # 첫 페이지 로딩
+    wd = webdriver.Chrome('C:\\gachon2020\\chromedriver_win32\\chromedriver.exe')
+    wd.get(url)
+    time.sleep(3)
+
+    results = []
+
+    for page in count(start=1, step=1):
+        # 자바스크립트 실행
+        script = 'store.getList(%d)' % page
+        wd.execute_script(script)
+        print(f'{datetime.now()} : success for request[{script}]')
+        time.sleep(2)
+        # 자바스크립트 실행결과 HTML(동적으로 렌더링 된 HTML) 가져오기
+        html = wd.page_source
+
+        # parsing with bs4
+        bs = BeautifulSoup(html, 'html.parser')
+        tag_tbody = bs.find('tbody', attrs={'id': 'store_list'})
+        tags_tr = tag_tbody.findAll('tr')
+
+        # 끝검출
+        if tags_tr[0].get('class') is None:
+            break
+
+        for tag_tr in tags_tr:
+            strings = list(tag_tr.strings)
+            name = strings[1]
+            address = strings[6]
+            sidogu = address.split()[0:2]
+
+            t = (name, address) + tuple(sidogu)
+            results.append(t)
+
+    wd.quit()
+    # store
+    table = pd.DataFrame(results, columns=['name', 'address', 'sido', 'gigun'])
+    table.to_csv('results/goobne.csv', encoding='utf-8', mode='w', index=True)
 
 
 def crawling_kyochon():
@@ -108,9 +147,10 @@ if __name__ == '__main__':
     # crawling_pelicana()
 
     # nene
-     crawling_nene()
+    #  crawling_nene()
 
     # kyochon
     # crawling_kyochon()
 
     # goobne
+    crawling_goobne()
